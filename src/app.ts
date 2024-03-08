@@ -9,6 +9,8 @@ import departmentRoute from "./routes/departmentRoute"
 import studentRoute from "./routes/studentRoute"
 import teacherRoute from "./routes/teacherRoute"
 import courseRoute from "./routes/courseRoute"
+import manualFileRoute from "./routes/manualFileRoute"
+import homeworkFileRoute from "./routes/homeworkFileRoute"
 
 const app = express()
 
@@ -21,6 +23,9 @@ app.use("/api", departmentRoute)
 app.use("/api", studentRoute)
 app.use("/api", teacherRoute)
 app.use("/api", courseRoute)
+app.use("/api", manualFileRoute)
+app.use("/api", homeworkFileRoute)
+
 app.use((_, res) => {
     res.status(404).json({
         status: false,

@@ -1,6 +1,7 @@
 import express from "express"
 import Course from "../models/course"
 import {v4 as uuidv4} from "uuid"
+import Manual_files from "../models/manual_files"
 
 const router = express.Router()
 
@@ -46,6 +47,7 @@ router.get("/courses/:id", async (req, res) => {
                 data: null
             })
         }
+        course.dataValues.manual_files = await Manual_files.findAll({where: {course_id: id}})
         return res.status(200).json({
             status: true,
             message: {
