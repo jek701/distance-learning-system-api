@@ -5,7 +5,7 @@ class Homework_files extends Model {
     public id!: number
     public file_name!: string
     public file_path!: string
-    public student_id!: number
+    public student_id!: string
     public group_id!: number
     public course_id!: number
     public status!: string

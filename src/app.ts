@@ -11,6 +11,7 @@ import teacherRoute from "./routes/teacherRoute"
 import courseRoute from "./routes/courseRoute"
 import manualFileRoute from "./routes/manualFileRoute"
 import homeworkFileRoute from "./routes/homeworkFileRoute"
+import authRoute from "./routes/authRoute"
 
 const app = express()
 
@@ -25,6 +26,7 @@ app.use("/api", teacherRoute)
 app.use("/api", courseRoute)
 app.use("/api", manualFileRoute)
 app.use("/api", homeworkFileRoute)
+app.use("/api", authRoute)
 
 app.use((_, res) => {
     res.status(404).json({
@@ -34,7 +36,7 @@ app.use((_, res) => {
     })
 })
 
-sequelize.sync()
+sequelize.sync({logging: console.log})
     .then(() => {
         console.log("База данных успешно синхронизирована")
     })

@@ -4,49 +4,95 @@ import {multerHomeworkFilePath, uploadHomeworkFiles} from "../multerConfig"
 import {v4 as uuidv4} from "uuid"
 import * as fs from "fs"
 import path from "path"
+import {authenticateToken, isStudent, isStudentFileOwner, isTeacher} from "../middlewares/auth"
+import jwt from "jsonwebtoken"
+import {StudentJWTEncoded, TeacherJWTEncoded} from "../types/jwtEndcode"
+import Students from "../models/students"
+import Group from "../models/group"
 
 const router = express.Router()
+const jwtSecret = process.env.JWT_SECRET || ""
 
 // Endpoint for uploading files
-router.post("/homework-files", uploadHomeworkFiles.single("file"), async (req, res) => {
+router.post("/homework-files", isStudent, uploadHomeworkFiles.single("file"), async (req, res) => {
     try {
+        const authHeader = req.headers["authorization"]
+        const token = authHeader && authHeader.split(" ")[1]
         const {file} = req
-        const {student_id, group_id, course_id} = req.body
+        const {course_id} = req.body
         const id = uuidv4()
 
-        if (!file) {
-            res.status(400).json({
+        if (!token) {
+            res.status(401).json({
                 status: false,
-                message: "Please upload a file",
+                message: {
+                    ru: "Токен отсутствует",
+                    uz: "Token mavjud emas",
+                },
                 data: []
             })
             return
         }
 
+        const decoded = jwt.verify(token, jwtSecret) as StudentJWTEncoded
+        const student = await Students.findByPk(decoded.id)
+
+        if (!student) {
+            res.status(404).json({
+                status: false,
+                message: {
+                    ru: "Пользователь не найден",
+                    uz: "Foydalanuvchi topilmadi",
+                },
+                data: []
+            })
+            return
+        }
+
+        if (!file) {
+            res.status(400).json({
+                status: false,
+                message: {
+                    ru: "Пожалуйста, загрузите файл",
+                    uz: "Iltimos, faylni yuklang",
+                },
+                data: []
+            })
+            return
+        }
+
+        const group_id = await Group.findOne({where: {number: student?.group_number}})
+
         const manualFile = await Homework_files.create({
             file_name: file.filename,
             file_path: multerHomeworkFilePath + file.filename,
             course_id,
-            student_id,
+            student_id: student.id,
             group_id,
             id
         })
         res.status(201).json({
             status: true,
-            message: "File uploaded successfully",
+            message: {
+                ru: "Успешно",
+                uz: "Muvaffaqiyatli",
+            },
             data: manualFile
         })
     } catch (error) {
         res.status(400).json({
             status: false,
-            message: "Failed to upload file",
+            message: {
+                ru: "Не удалось загрузить файл",
+                uz: "Faylni yuklab bo'lmadi",
+            },
             data: error
         })
     }
 })
 
 // Endpoint to update a file
-router.put("/homework-files/:id", uploadHomeworkFiles.single("file"), async (req, res) => {
+router.put("/homework-files/:id", isStudentFileOwner, uploadHomeworkFiles.single("file"), async (req, res) => {
     try {
         const {file} = req
         const {id} = req.params
@@ -54,7 +100,10 @@ router.put("/homework-files/:id", uploadHomeworkFiles.single("file"), async (req
         if (!file) {
             res.status(400).json({
                 status: false,
-                message: "Please upload a file",
+                message: {
+                    ru: "Пожалуйста, загрузите файл",
+                    uz: "Iltimos, faylni yuklang",
+                },
                 data: []
             })
             return
@@ -65,7 +114,10 @@ router.put("/homework-files/:id", uploadHomeworkFiles.single("file"), async (req
         if (!manualFile) {
             res.status(404).json({
                 status: false,
-                message: "File not found",
+                message: {
+                    ru: "Файл не найден",
+                    uz: "Fayl topilmadi",
+                },
                 data: []
             })
             return
@@ -77,20 +129,26 @@ router.put("/homework-files/:id", uploadHomeworkFiles.single("file"), async (req
         await manualFile.save()
         res.status(200).json({
             status: true,
-            message: "File updated successfully",
+            message: {
+                ru: "Успешно",
+                uz: "Muvaffaqiyatli",
+            },
             data: manualFile
         })
     } catch (error) {
         res.status(400).json({
             status: false,
-            message: "Failed to update file",
+            message: {
+                ru: "Не удалось обновить файл",
+                uz: "Faylni yangilash muvaffaqiyatli emas",
+            },
             data: error
         })
     }
 })
 
 // Endpoint to update homework mark and status
-router.put("/homework-files/:id/mark", async (req, res) => {
+router.put("/homework-files/:id/mark", isTeacher, async (req, res) => {
     try {
         const {id} = req.params
         const {mark, status}: Homework_files = req.body
@@ -100,7 +158,10 @@ router.put("/homework-files/:id/mark", async (req, res) => {
         if (!manualFile) {
             res.status(404).json({
                 status: false,
-                message: "File not found",
+                message: {
+                    ru: "Файл не найден",
+                    uz: "Fayl topilmadi",
+                },
                 data: []
             })
             return
@@ -111,20 +172,26 @@ router.put("/homework-files/:id/mark", async (req, res) => {
         await manualFile.save()
         res.status(200).json({
             status: true,
-            message: "Homework mark and status updated successfully",
+            message: {
+                ru: "Успешно",
+                uz: "Muvaffaqiyatli",
+            },
             data: manualFile
         })
     } catch (error) {
         res.status(400).json({
             status: false,
-            message: "Failed to update homework mark and status",
+            message: {
+                ru: "Не удалось обновить оценку и статус домашнего задания",
+                uz: "Vazifa bahosi va holatini yangilash muvaffaqiyatli emas",
+            },
             data: error
         })
     }
 })
 
 // Endpoint to delete a file
-router.delete("/homework-files/:id", async (req, res) => {
+router.delete("/homework-files/:id", isStudentFileOwner, async (req, res) => {
     try {
         const {id} = req.params
         const manualFile = await Homework_files.findByPk(id)
@@ -132,7 +199,10 @@ router.delete("/homework-files/:id", async (req, res) => {
         if (!manualFile) {
             res.status(404).json({
                 status: false,
-                message: "File not found",
+                message: {
+                    ru: "Файл не найден",
+                    uz: "Fayl topilmadi",
+                },
                 data: []
             })
             return
@@ -142,32 +212,44 @@ router.delete("/homework-files/:id", async (req, res) => {
         await manualFile.destroy()
         res.status(200).json({
             status: true,
-            message: "File deleted successfully",
+            message: {
+                ru: "Успешно",
+                uz: "Muvaffaqiyatli",
+            },
             data: manualFile
         })
     } catch (error) {
         res.status(400).json({
             status: false,
-            message: "Failed to delete file",
+            message: {
+                ru: "Не удалось удалить файл",
+                uz: "Faylni o'chirib bo'lmadi",
+            },
             data: error
         })
     }
 })
 
 // Endpoint to get all files by course
-router.get("/homework-files/course/:id", async (req, res) => {
+router.get("/homework-files/course/:id", authenticateToken, async (req, res) => {
     try {
         const {id} = req.params
         const manualFiles = await Homework_files.findAll({where: {course_id: id}})
         res.status(200).json({
             status: true,
-            message: "Files by course",
+            message: {
+                ru: "Успешно",
+                uz: "Muvaffaqiyatli",
+            },
             data: manualFiles
         })
     } catch (error) {
         res.status(400).json({
             status: false,
-            message: "Failed to get files by course",
+            message: {
+                ru: "Не удалось получить файлы",
+                uz: "Fayllarni olish muvaffaqiyatli emas",
+            },
             data: error
         })
     }

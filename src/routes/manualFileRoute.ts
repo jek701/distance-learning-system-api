@@ -19,7 +19,10 @@ router.post("/manual-files/:course_id", uploadManualFiles.single("file"), async 
         if (!course) {
             res.status(404).json({
                 status: false,
-                message: "Course not found",
+                message: {
+                    ru: "Курс не найден",
+                    uz: "Kurs topilmadi",
+                },
                 data: []
             })
             return
@@ -28,7 +31,10 @@ router.post("/manual-files/:course_id", uploadManualFiles.single("file"), async 
         if (!file) {
             res.status(400).json({
                 status: false,
-                message: "Please upload a file",
+                message: {
+                    ru: "Пожалуйста, загрузите файл",
+                    uz: "Iltimos, faylni yuklang",
+                },
                 data: []
             })
             return
@@ -42,13 +48,19 @@ router.post("/manual-files/:course_id", uploadManualFiles.single("file"), async 
         })
         res.status(201).json({
             status: true,
-            message: "File uploaded successfully",
+            message: {
+                ru: "Успешно",
+                uz: "Muvaffaqiyatli",
+            },
             data: manualFile
         })
     } catch (error) {
         res.status(400).json({
             status: false,
-            message: "Failed to upload file",
+            message: {
+                ru: "Не удалось загрузить файл",
+                uz: "Faylni yuklab bo'lmadi",
+            },
             data: error
         })
     }
@@ -63,7 +75,10 @@ router.delete("/manual-files/:id", async (req, res) => {
         if (!manualFile) {
             res.status(404).json({
                 status: false,
-                message: "File not found",
+                message: {
+                    ru: "Файл не найден",
+                    uz: "Fayl topilmadi",
+                },
                 data: []
             })
             return
@@ -73,13 +88,19 @@ router.delete("/manual-files/:id", async (req, res) => {
         await manualFile.destroy()
         res.status(200).json({
             status: true,
-            message: "File deleted successfully",
+            message: {
+                ru: "Успешно",
+                uz: "Muvaffaqiyatli",
+            },
             data: manualFile
         })
     } catch (error) {
         res.status(400).json({
             status: false,
-            message: "Failed to delete file",
+            message: {
+                ru: "Не удалось удалить файл",
+                uz: "Faylni o'chirib bo'lmadi",
+            },
             data: error
         })
     }
