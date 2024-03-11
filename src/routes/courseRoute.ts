@@ -3,6 +3,7 @@ import Course from "../models/course"
 import {v4 as uuidv4} from "uuid"
 import Manual_files from "../models/manual_files"
 import Group from "../models/group"
+import Teacher from "../models/teacher"
 
 const router = express.Router()
 
@@ -87,6 +88,47 @@ router.get("/courses/group/:group_id", async (req, res) => {
         }
 
         const courses = await Course.findAll({where: {id: courseIds.studying_courses}})
+        return res.status(200).json({
+            status: true,
+            message: {
+                ru: "Список курсов успешно получен",
+                uz: "Kurslar ro'yxati muvaffaqiyatli olingan"
+            },
+            data: courses
+        })
+    } catch (error) {
+        return res.status(500).json({
+            status: false,
+            message: {
+                ru: "Ошибка сервера",
+                uz: "Serverda xatolik"
+            },
+            data: null
+        })
+
+    }
+})
+
+// Endpoint to get all courses of the teacher
+router.get("/courses/teacher/:teacher_id", async (req, res) => {
+    const {teacher_id} = req.params
+
+    try {
+        const courseIds = await Teacher.findOne({where: {id: teacher_id}, attributes: ["teaching_courses"]})
+
+        if (!courseIds) {
+            return res.status(404).json({
+                status: false,
+                message: {
+                    ru: "Преподаватель не найден",
+                    uz: "O'qituvchi topilmadi"
+                },
+                data: null
+            })
+        }
+
+        const courses = await Course.findAll({where: {id: courseIds.teaching_courses}})
+
         return res.status(200).json({
             status: true,
             message: {
