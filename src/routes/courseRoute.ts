@@ -2,6 +2,7 @@ import express from "express"
 import Course from "../models/course"
 import {v4 as uuidv4} from "uuid"
 import Manual_files from "../models/manual_files"
+import Group from "../models/group"
 
 const router = express.Router()
 
@@ -67,6 +68,46 @@ router.get("/courses/:id", async (req, res) => {
         })
     }
 })
+
+// Endpoint to get all courses for specific group
+router.get("/courses/group/:group_id", async (req, res) => {
+    const {group_id} = req.params
+
+    try {
+        const courseIds = await Group.findOne({where: {id: group_id}, attributes: ["studying_courses"]})
+        if (!courseIds) {
+            return res.status(404).json({
+                status: false,
+                message: {
+                    ru: "Группа не найдена",
+                    uz: "Guruh topilmadi"
+                },
+                data: null
+            })
+        }
+
+        const courses = await Course.findAll({where: {id: courseIds.studying_courses}})
+        return res.status(200).json({
+            status: true,
+            message: {
+                ru: "Список курсов успешно получен",
+                uz: "Kurslar ro'yxati muvaffaqiyatli olingan"
+            },
+            data: courses
+        })
+    } catch (error) {
+        return res.status(500).json({
+            status: false,
+            message: {
+                ru: "Ошибка сервера",
+                uz: "Serverda xatolik"
+            },
+            data: null
+        })
+
+    }
+})
+
 
 // Endpoint to create a course
 router.post("/courses", async (req, res) => {

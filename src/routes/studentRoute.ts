@@ -2,6 +2,7 @@ import express from "express"
 import Students from "../models/students"
 import {v4 as uuidv4} from "uuid"
 import bycrypt from "bcrypt"
+import {multerProfilePicturePath, uploadProfilePicture} from "../multerConfig"
 
 const router = express.Router()
 
@@ -9,6 +10,49 @@ const router = express.Router()
 router.get("/students", async (_, res) => {
     try {
         const students = await Students.findAndCountAll({
+            order: [["created_at", "DESC"]]
+        })
+        students.rows.forEach(student => student.dataValues.password = undefined)
+        return res.status(200).json({
+            status: true,
+            message: {
+                ru: "Успешно",
+                uz: "Muvaffaqiyatli"
+            },
+            data: students.rows
+        })
+    } catch (err) {
+        return res.status(500).json({
+            status: false,
+            message: {
+                ru: "Ошибка сервера",
+                uz: "Server xatosi"
+            },
+            data: []
+        })
+    }
+})
+
+// Endpoint to get student by group number
+router.get("/students/group/:number", async (req, res) => {
+    const {number} = req.params
+
+    if (!number) {
+        return res.status(400).json({
+            status: false,
+            message: {
+                ru: "Укажите номер группы",
+                uz: "Guruh raqamini kiriting"
+            },
+            data: []
+        })
+    }
+
+    try {
+        const students = await Students.findAndCountAll({
+            where: {
+                group_number: number
+            },
             order: [["created_at", "DESC"]]
         })
         students.rows.forEach(student => student.dataValues.password = undefined)
@@ -134,8 +178,8 @@ router.post("/students", async (req, res) => {
 })
 
 // Endpoint to update a student
-router.put("/students/:id", async (req, res) => {
-    const {student_card_number, name, group_number, middle_name, profile_picture_url, surname}: Students = req.body
+router.put("/students/:id", uploadProfilePicture.single("file"), async (req, res) => {
+    const {student_card_number, name, group_number, middle_name, surname}: Students = req.body
     const {id} = req.params
 
     if (!id) {
@@ -162,12 +206,16 @@ router.put("/students/:id", async (req, res) => {
             })
         }
 
+        if (req.file) {
+            student.profile_picture_url = req.file.path
+        }
+
         await student.update({
             student_card_number,
             name,
             group_number,
             middle_name,
-            profile_picture_url,
+            profile_picture_url: "http://localhost:7878" + multerProfilePicturePath + req.file?.filename,
             surname
         })
         student.dataValues.password = undefined

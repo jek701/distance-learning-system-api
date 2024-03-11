@@ -6,7 +6,7 @@ import * as fs from "fs"
 import path from "path"
 import {authenticateToken, isStudent, isStudentFileOwner, isTeacher} from "../middlewares/auth"
 import jwt from "jsonwebtoken"
-import {StudentJWTEncoded, TeacherJWTEncoded} from "../types/jwtEndcode"
+import {StudentJWTEncoded} from "../types/jwtEndcode"
 import Students from "../models/students"
 import Group from "../models/group"
 
@@ -68,7 +68,7 @@ router.post("/homework-files", isStudent, uploadHomeworkFiles.single("file"), as
             file_path: multerHomeworkFilePath + file.filename,
             course_id,
             student_id: student.id,
-            group_id,
+            group_id: group_id?.id,
             id
         })
         res.status(201).json({
@@ -234,7 +234,10 @@ router.delete("/homework-files/:id", isStudentFileOwner, async (req, res) => {
 router.get("/homework-files/course/:id", authenticateToken, async (req, res) => {
     try {
         const {id} = req.params
-        const manualFiles = await Homework_files.findAll({where: {course_id: id}})
+        const manualFiles = await Homework_files.findAll({where: {course_id: id}, order: [["created_at", "DESC"]]})
+        for (const file of manualFiles) {
+            file.dataValues.student = await Students.findByPk(file.student_id)
+        }
         res.status(200).json({
             status: true,
             message: {
